@@ -2,17 +2,16 @@ const database = require("../config");
 
 // create color
 const createColor = async (req, res) => {
-  const color = req.body.color;
-  const code = req.body.code;
+  const { colorCode, colorName } = req.body; // Lấy dữ liệu colorCode và colorName từ request body
 
-  const query = "INSERT INTO color (color_name, color_code) VALUES (?, ?)";
+  const query = "INSERT INTO color (color_code, color_name) VALUES (?, ?)"; // Đảm bảo thứ tự của cột trong VALUES phù hợp với cấu trúc của bạn
 
-  const args = [color, code];
+  const args = [colorCode, colorName]; // Đặt dữ liệu vào mảng args
 
   database.query(query, args, (error, result) => {
     if (error) {
+      console.error("Lỗi truy vấn cơ sở dữ liệu:", error);
       res.status(500).json({ message: "Internal error server" });
-      throw error;
     } else {
       res.status(200).json({ data: result, message: "Your color is created" });
     }
@@ -108,14 +107,13 @@ const deleteColor = async (req, res) => {
 
   database.query(query, args, (error, result) => {
     if (error) {
+      console.error("Lỗi truy vấn cơ sở dữ liệu:", error);
       res.status(500).json({ message: "Internal error server" });
-      throw error;
     } else {
       res.status(200).json({ data: result, message: "Your color is deleted" });
     }
   });
 };
-
 // get color by id
 const getColorById = async (req, res) => {
   const id = req.params.id;
