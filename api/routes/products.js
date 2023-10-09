@@ -98,19 +98,23 @@ router.get("/", (request, response) => {
       WHERE product_image.product_id = product.id
       LIMIT 1
     ) as image,
-
+    (
+      SELECT JSON_ARRAYAGG(product_image.image)
+      FROM product_image 
+      WHERE product_image.product_id = product.id
+    ) as listImage,
     (
       SELECT JSON_ARRAYAGG(color.color_code)
       FROM product_color 
       INNER JOIN color ON color.id = product_color.color_id
       WHERE product_color.product_id = product.id
-  ) as color,
-  (
-    SELECT JSON_ARRAYAGG(size.size_name)
-    FROM product_size 
-    INNER JOIN size ON size.id = product_size.size_id
-    WHERE product_size.product_id = product.id
-  ) as size,
+    ) as color,
+    (
+      SELECT JSON_ARRAYAGG(size.size_name)
+      FROM product_size 
+      INNER JOIN size ON size.id = product_size.size_id
+      WHERE product_size.product_id = product.id
+    ) as size,
     product.category,
     (SELECT IF(COUNT(*) >= 1, TRUE, FALSE) FROM favorite WHERE favorite.user_id = ? AND favorite.product_id = product.id) as isFavourite,
     (SELECT IF(COUNT(*) >= 1, TRUE, FALSE) FROM cart WHERE cart.user_id = ? AND cart.product_id = product.id) as isInCart
@@ -172,6 +176,11 @@ router.get("/search", (request, response) => {
       WHERE product_image.product_id = product.id
       LIMIT 1
     ) as image,
+    (
+      SELECT JSON_ARRAYAGG(product_image.image)
+      FROM product_image 
+      WHERE product_image.product_id = product.id
+    ) as listImage,
     (
       SELECT JSON_ARRAYAGG(color.color_code)
       FROM product_color 
@@ -480,7 +489,7 @@ router.post("/create", uploadImage.array("image", 5), (request, response) => {
     } else {
       const productId = result.insertId;
 
-      const arrColorId = colorIds?.length > 0 ? colorIds : JSON.parse(colorIds);
+      const arrColorId = Array.isArray(colorIds) ? colorIds : [colorIds];
 
       // Thêm màu vào sản phẩm
       if (arrColorId && Array.isArray(arrColorId) && arrColorId.length > 0) {
@@ -503,7 +512,7 @@ router.post("/create", uploadImage.array("image", 5), (request, response) => {
         });
       }
 
-      const arrSizeId = sizeIds?.length > 0 ? sizeIds : JSON.parse(sizeIds);
+      const arrSizeId = Array.isArray(sizeIds) ? sizeIds : [sizeIds];
       // Thêm thể loại vào sản phẩm
       if (arrSizeId && Array.isArray(arrSizeId) && arrSizeId?.length > 0) {
         arrSizeId?.map((sizeId) => {
@@ -524,32 +533,28 @@ router.post("/create", uploadImage.array("image", 5), (request, response) => {
       }
 
       filePaths.forEach((filePath) => {
-        cloudinary.uploader.upload(filePath, (error, result) => {
+        // cloudinary.uploader.upload(filePath, (error, result) => {
+        // if (error) {
+        //   return response
+        //     .status(500)
+        //     .json({ message: "Error uploading image" });
+        // }
+
+        // const imageUrl = result.secure_url;
+
+        const insertImageQuery =
+          "INSERT INTO product_image (product_id, image) VALUES (?, ?)";
+        const imageValues = [productId, filePath];
+
+        database.query(insertImageQuery, imageValues, (error, imageResult) => {
           if (error) {
             return response
               .status(500)
-              .json({ message: "Error uploading image" });
+              .json({ message: "Internal error server" });
           }
-
-          const imageUrl = result.secure_url;
-
-          const insertImageQuery =
-            "INSERT INTO product_image (product_id, image) VALUES (?, ?)";
-          const imageValues = [productId, imageUrl];
-
-          database.query(
-            insertImageQuery,
-            imageValues,
-            (error, imageResult) => {
-              if (error) {
-                return response
-                  .status(500)
-                  .json({ message: "Internal error server" });
-              }
-            }
-          );
         });
       });
+      // });
     }
 
     return response
@@ -571,7 +576,7 @@ router.post(
     const category = request.body.category;
     const colorIds = request.body.colorIds;
     const sizeIds = request.body.sizeIds;
-    const imageDel = request.body.imageDel;
+    const imageDel = request.body.imageDel || [];
 
     const files = request.files;
     const newFilePaths = files ? files.map((file) => file.path) : [];
@@ -589,7 +594,7 @@ router.post(
         throw error;
       }
 
-      const arrColorId = colorIds ? JSON.parse(colorIds) : [];
+      const arrColorId = Array.isArray(colorIds) ? colorIds : [colorIds];
 
       const deleteColorsQuery =
         "DELETE FROM product_color WHERE product_id = ?";
@@ -621,7 +626,7 @@ router.post(
           });
         }
 
-        const arrSizeId = sizeIds ? JSON.parse(sizeIds) : [];
+        const arrSizeId = Array.isArray(sizeIds) > 0 ? sizeIds : [sizeIds];
 
         const deleteSizesQuery =
           "DELETE FROM product_size WHERE product_id = ?";
@@ -659,8 +664,7 @@ router.post(
             "INSERT INTO product_image (product_id, image) VALUES (?, ?)";
 
           // Xoá các ảnh
-          const arrImageDel = imageDel ? JSON.parse(imageDel) : [];
-
+          const arrImageDel = Array.isArray(imageDel) ? imageDel : [imageDel];
           if (arrImageDel.length > 0) {
             arrImageDel?.forEach((imageId) => {
               database.query(
@@ -681,29 +685,29 @@ router.post(
           // Thêm ảnh mới
           if (newFilePaths.length > 0) {
             filePaths.forEach((filePath) => {
-              cloudinary.uploader.upload(filePath, (error, result) => {
-                if (error) {
-                  return response
-                    .status(500)
-                    .json({ message: "Error uploading image" });
-                }
+              // cloudinary.uploader.upload(filePath, (error, result) => {
+              //   if (error) {
+              //     return response
+              //       .status(500)
+              //       .json({ message: "Error uploading image" });
+              //   }
 
-                const imageUrl = result.secure_url;
-                const imageValues = [id, imageUrl];
-                database.query(
-                  insertImageQuery,
-                  imageValues,
-                  (error, imageResult) => {
-                    if (error) {
-                      response
-                        .status(500)
-                        .json({ message: "Internal error server (Images)" });
-                      throw error;
-                    }
+              // const imageUrl = result.secure_url;
+              const imageValues = [id, filePath];
+              database.query(
+                insertImageQuery,
+                imageValues,
+                (error, imageResult) => {
+                  if (error) {
+                    response
+                      .status(500)
+                      .json({ message: "Internal error server (Images)" });
+                    throw error;
                   }
-                );
-              });
+                }
+              );
             });
+            // });
           }
 
           response.status(200).json({
