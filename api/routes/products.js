@@ -461,8 +461,8 @@ router.post("/create", uploadImage.array("image", 5), (request, response) => {
   const quantity = request.body.quantity;
   const supplier = request.body.supplier;
   const category = request.body.category;
-  const colorIds = request.body.colorIds;
-  const sizeIds = request.body.sizeIds;
+  const colorIds = request.body.colorIds || [];
+  const sizeIds = request.body.sizeIds || [];
 
   const files = request.files;
 
@@ -480,9 +480,7 @@ router.post("/create", uploadImage.array("image", 5), (request, response) => {
     } else {
       const productId = result.insertId;
 
-      const arrColorId = Array.isArray(colorIds)
-        ? colorIds
-        : JSON.parse(colorIds);
+      const arrColorId = Array.isArray(colorIds) ? colorIds : [colorIds];
 
       // Thêm màu vào sản phẩm
       if (arrColorId && Array.isArray(arrColorId) && arrColorId.length > 0) {
@@ -505,7 +503,7 @@ router.post("/create", uploadImage.array("image", 5), (request, response) => {
         });
       }
 
-      const arrSizeId = Array.isArray(sizeIds) ? sizeIds : JSON.parse(sizeIds);
+      const arrSizeId = Array.isArray(sizeIds) ? sizeIds : [sizeIds];
       // Thêm thể loại vào sản phẩm
       if (arrSizeId && Array.isArray(arrSizeId) && arrSizeId?.length > 0) {
         arrSizeId?.map((sizeId) => {
@@ -591,9 +589,7 @@ router.post(
         throw error;
       }
 
-      const arrColorId = Array.isArray(colorIds)
-        ? colorIds
-        : JSON.parse(colorIds);
+      const arrColorId = Array.isArray(colorIds) ? colorIds : [colorIds];
 
       const deleteColorsQuery =
         "DELETE FROM product_color WHERE product_id = ?";
@@ -625,8 +621,7 @@ router.post(
           });
         }
 
-        const arrSizeId =
-          Array.isArray(sizeIds) > 0 ? sizeIds : JSON.parse(sizeIds);
+        const arrSizeId = Array.isArray(sizeIds) > 0 ? sizeIds : [sizeIds];
 
         const deleteSizesQuery =
           "DELETE FROM product_size WHERE product_id = ?";
