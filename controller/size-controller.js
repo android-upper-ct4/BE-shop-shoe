@@ -3,9 +3,9 @@ const database = require("../config");
 const createSize = async (req, res) => {
   const size = req.body.size;
 
-  const query = "INSERT INTO size values (?,?)";
+  const query = "INSERT INTO size (size_name) values (?)";
 
-  const args = [id, size];
+  const args = [size];
 
   database.query(query, args, (error, result) => {
     if (error) {
@@ -117,7 +117,7 @@ const updateSize = async (req, res) => {
 const getSizeById = async (req, res) => {
   const id = req.params.id;
 
-  const query = "SELECT * FROM size WHERE id = ?";
+  const query = "SELECT id, size_name as sizeName FROM size WHERE id = ?";
 
   const args = [id];
 

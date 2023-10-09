@@ -121,7 +121,8 @@ const deleteColor = async (req, res) => {
 const getColorById = async (req, res) => {
   const id = req.params.id;
 
-  const query = "SELECT * FROM color WHERE id = ?";
+  const query =
+    "SELECT id,  color_code as colorCode, color_name as colorName FROM color WHERE id = ?";
 
   const args = [id];
 
