@@ -102,10 +102,20 @@ const getOrderById = async (req, res) => {
   let query = `
     SELECT od.*,
     JSON_OBJECT('userId', user.id, 'userName', user.name, 'email', user.email) as user ,
-    JSON_OBJECT('productId', product.id, 'productName', product.product_name, 'price', product.price, 'supplier', product.supplier, 'category', product.category) as product
+    JSON_OBJECT(
+      'productId', product.id, 
+      'productName', product.product_name, 
+      'price', product.price, 
+      'supplier', product.supplier, 
+      'category', product.category,
+      'color', color.color_name,
+      'size', cart.size
+    ) as product
     FROM ordering od
-    LEFT JOIN user ON user.id = od.user_id
-    LEFT JOIN product ON product.id = od.product_id
+    INNER JOIN user ON user.id = od.user_id
+    INNER JOIN cart ON cart.id = od.cart_id
+    INNER JOIN product ON product.id = cart.product_id
+    INNER JOIN color ON color.color_code = cart.color
     WHERE od.ordering_id = ?
     `;
   let params = [id];

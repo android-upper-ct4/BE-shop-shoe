@@ -125,6 +125,13 @@ router.get("/get", (request, response) => {
                           Ordering.status,Product.product_name,
                           Product.price,
                           Product.id,
+                          (
+                            SELECT color_name FROM color WHERE cart.color = color_code
+                          ) as color,
+                          (
+                            SELECT image FROM product_image WHERE product_image.product_id = cart.product_id LIMIT 1
+                          ) as image,
+                          cart.size,
                           User.name,
                           Shipping.address
                           FROM Ordering 
